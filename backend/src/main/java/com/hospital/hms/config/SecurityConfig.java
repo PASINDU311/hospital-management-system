@@ -25,7 +25,7 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() // Auth endpoints කාටත් open
+                .requestMatchers("/api/auth/**", "/api/appointments/**").permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
