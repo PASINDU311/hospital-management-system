@@ -1,0 +1,16 @@
+# Compiled class files
+**/target/
+**/*.class
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.iml
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Node dependencies (frontend එකට පස්සේ ඕන වෙනවා)
+**/node_modules/
+**/dist/
