@@ -1,0 +1,24 @@
+package com.hospital.hms.controller;
+
+import com.hospital.hms.dto.AuthResponse;
+import com.hospital.hms.dto.PatientRegisterRequest;
+import com.hospital.hms.service.AuthService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+@CrossOrigin(origins = "*")
+public class AuthController {
+
+    private final AuthService authService;
+
+    @PostMapping("/register/patient")
+    public ResponseEntity<AuthResponse> registerPatient(@RequestBody PatientRegisterRequest request) {
+        AuthResponse response = authService.registerPatient(request);
+        return new ResponseEntity<>(response, HttpStatus.CREATED);
+    }
+}
