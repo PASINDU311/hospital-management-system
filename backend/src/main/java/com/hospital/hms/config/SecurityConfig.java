@@ -25,8 +25,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             .cors(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**", "/api/appointments/**").permitAll()
-                .anyRequest().permitAll() // Development phase එකේ testing ලේසි වෙන්න ඕනෑම Request එකකට Permit දුන්නා
+                .requestMatchers("/api/auth/**", "/api/appointments/**", "/api/medical-records/**", "/api/billing/**").permitAll()
+                .anyRequest().permitAll()
             )
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
