@@ -1,6 +1,9 @@
 package com.hospital.hms.service;
 
+import com.hospital.hms.config.JwtUtils;
 import com.hospital.hms.dto.AuthResponse;
+import com.hospital.hms.dto.LoginRequest;
+import com.hospital.hms.dto.LoginResponse;
 import com.hospital.hms.dto.PatientRegisterRequest;
 import com.hospital.hms.model.Patient;
 import com.hospital.hms.model.Role;
@@ -12,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Random;
 
 @Service
@@ -21,15 +25,14 @@ public class AuthService {
     private final UserRepository userRepository;
     private final PatientRepository patientRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtils jwtUtils;
 
     @Transactional
     public AuthResponse registerPatient(PatientRegisterRequest request) {
-        // 1. Email validation
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email address is already registered!");
+            throw new RuntimeException("Email is already registered!");
         }
 
-        // 2. Create User Account
         User user = new User();
         user.setFullName(request.getFullName());
         user.setEmail(request.getEmail());
@@ -37,42 +40,47 @@ public class AuthService {
         user.setPhone(request.getPhone());
         user.setRole(Role.PATIENT);
         user.setActive(true);
+        user.setCreatedAt(LocalDateTime.now());
 
         User savedUser = userRepository.save(user);
 
-        // 3. Create Patient Profile
         Patient patient = new Patient();
         patient.setUser(savedUser);
+        patient.setPatientId("P-" + (10000 + new Random().nextInt(90000)));
         patient.setNicOrPassport(request.getNicOrPassport());
         patient.setDateOfBirth(request.getDateOfBirth());
         patient.setGender(request.getGender());
         patient.setAddress(request.getAddress());
         patient.setEmergencyContact(request.getEmergencyContact());
-        
-        // Generate Unique Patient ID (e.g., P-10025)
-        patient.setPatientId(generateUniquePatientId());
 
         Patient savedPatient = patientRepository.save(patient);
 
-        return new AuthResponse(
-                "Patient registered successfully!",
-                savedPatient.getPatientId(),
-                savedUser.getEmail(),
-                savedUser.getRole()
-        );
+        return new AuthResponse("Patient registered successfully!", savedPatient.getPatientId(), savedUser.getEmail(), savedUser.getRole());
     }
 
-    private String generateUniquePatientId() {
-        Random random = new Random();
-        int randomNumber = 10000 + random.nextInt(90000); // Generates 5 digit number
-        String generatedId = "P-" + randomNumber;
+    public LoginResponse login(LoginRequest request) {
+        User user = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Invalid email or password!"));
 
-        // Ensure uniqueness
-        while (patientRepository.findByPatientId(generatedId).isPresent()) {
-            randomNumber = 10000 + random.nextInt(90000);
-            generatedId = "P-" + randomNumber;
+        if (!passwordEncoder.matches(request.getPassword(), user.getPassword())) {
+            throw new RuntimeException("Invalid email or password!");
         }
 
-        return generatedId;
+        if (!user.isActive()) {
+            throw new RuntimeException("Account is disabled!");
+        }
+
+        String token = jwtUtils.generateToken(user.getEmail(), user.getRole().name());
+
+        String patientId = null;
+        if (user.getRole() == Role.PATIENT) {
+            Patient patient = patientRepository.findByUser(user)
+                    .orElse(null);
+            if (patient != null) {
+                patientId = patient.getPatientId();
+            }
+        }
+
+        return new LoginResponse(token, user.getEmail(), user.getFullName(), user.getRole(), patientId);
     }
 }
