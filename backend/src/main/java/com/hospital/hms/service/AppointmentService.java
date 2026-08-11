@@ -56,6 +56,30 @@ public class AppointmentService {
                 .collect(Collectors.toList());
     }
 
+    public List<AppointmentResponse> getDoctorAppointments(String doctorId) {
+        Doctor doctor = doctorRepository.findByDoctorId(doctorId)
+                .orElseThrow(() -> new RuntimeException("Doctor not found!"));
+
+        return appointmentRepository.findByDoctor(doctor)
+                .stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public AppointmentResponse updateAppointmentStatus(String appointmentNo, AppointmentStatus status) {
+        Appointment appointment = appointmentRepository.findAll()
+                .stream()
+                .filter(a -> a.getAppointmentNo().equals(appointmentNo))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Appointment not found!"));
+
+        appointment.setStatus(status);
+        Appointment updatedApt = appointmentRepository.save(appointment);
+
+        return mapToResponse(updatedApt);
+    }
+
     private AppointmentResponse mapToResponse(Appointment apt) {
         return new AppointmentResponse(
                 apt.getAppointmentNo(),
