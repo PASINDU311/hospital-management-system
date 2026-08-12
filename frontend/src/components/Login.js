@@ -23,29 +23,37 @@ function Login() {
       const response = await API.post('/auth/login', formData);
       console.log("Login Response Data:", response.data);
 
-      localStorage.setItem('token', response.data.token || response.data.jwt);
-      localStorage.setItem('role', response.data.role);
+      const { token, role, email, fullName, patientId } = response.data;
 
-      // Backend response එකේ patientId, patient.id, හෝ patientId string එක ඇත්නම් ඒක ගන්න
-      const patientId = response.data.patientId 
-                     || response.data.patient?.id 
-                     || response.data.userId 
-                     || "1";
+      // LocalStorage Updates
+      localStorage.setItem('token', token || response.data.jwt);
+      localStorage.setItem('role', role);
+      localStorage.setItem('email', email || '');
+      localStorage.setItem('fullName', fullName || '');
 
-      localStorage.setItem('patientId', String(patientId));
+      // Patient ID එක ඇත්නම් Save කිරීම
+      if (patientId) {
+        localStorage.setItem('patientId', String(patientId));
+      }
 
-      navigate('/appointments');
+      // Role අනුව Redirect කිරීම
+      if (role === 'DOCTOR') {
+        navigate('/doctor-dashboard');
+      } else if (role === 'ADMIN') {
+        navigate('/admin-dashboard');
+      } else {
+        navigate('/appointments');
+      }
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed!');
+      setError(err.response?.data?.message || 'Login failed! Invalid credentials.');
     }
   };
 
   return (
-    // ඔයා එවපු image එකේ වගේ split-screen design එක
     <div className="container-fluid p-0 vh-100 login-page">
       <div className="row g-0 vh-100">
-        
-        {/* Left Side: Image & Message (වම් පැත්ත) */}
+
+        {/* Left Side: Image & Message */}
         <div className="col-md-6 d-none d-md-flex flex-column justify-content-center align-items-center bg-primary text-white p-5 login-left-panel">
           <div className="w-75 text-center">
             <h1 className="display-4 fw-bold mb-4">🏥 HMS Portal</h1>
@@ -56,7 +64,7 @@ function Login() {
           </div>
         </div>
 
-        {/* Right Side: Login Form (දකුණු පැත්ත) */}
+        {/* Right Side: Login Form */}
         <div className="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center p-5">
           <div className="login-form-container">
             <h2 className="fw-bold mb-3 text-dark">Welcome back</h2>
@@ -115,7 +123,7 @@ function Login() {
               </div>
             </form>
           </div>
-          
+
           {/* Bottom Security Label */}
           <div className="small text-muted mt-5 text-center security-label">
             🛡️ HMS Compliant Secure Login

@@ -27,18 +27,40 @@ function Register() {
     setMessage('');
     setError('');
 
+    // Age එක 'YYYY-MM-DD' String එකකට Convert කිරීම
+    const currentYear = new Date().getFullYear();
+    const birthYear = currentYear - (parseInt(formData.age) || 20);
+    const formattedDob = `${birthYear}-01-01`;
+
+    // Backend PatientRegisterRequest DTO එකට Exact mapping
+    const payload = {
+      fullName: formData.fullName,
+      email: formData.email,
+      password: formData.password,
+      phone: formData.phone,
+      nicOrPassport: `NIC-${Date.now()}`, // Unique value to prevent DB constraint issues
+      dateOfBirth: formattedDob,
+      gender: formData.gender || "Male",
+      address: formData.address || "No address provided",
+      emergencyContact: formData.phone
+    };
+
     try {
-      // ✅ හරියාකාර URL එක: /auth/register/patient
-      const response = await API.post('/auth/register/patient', formData);
-      
-      // AuthResponse object එකක් එන නිසා success message එකක් පෙන්වමු
+      const response = await API.post('/auth/register/patient', payload);
+      console.log("Register Success:", response.data);
       setMessage('Registration Successful!');
-      
+
       setTimeout(() => {
         navigate('/login');
-      }, 2000);
+      }, 1500);
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed! Please try again.');
+      console.error("Registration Error Details:", err.response);
+      
+      const backendError = err.response?.data?.message 
+        || err.response?.data 
+        || 'Registration failed! Check email or backend console.';
+
+      setError(typeof backendError === 'string' ? backendError : 'Registration failed! Server Error 500.');
     }
   };
 
