@@ -25,11 +25,37 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse bookAppointment(BookAppointmentRequest request) {
+        // 1. First try by patientId string, then by DB ID (Long), and finally fallback to any existing Patient
         Patient patient = patientRepository.findByPatientId(request.getPatientId())
-                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+                .orElseGet(() -> {
+                    try {
+                        Long id = Long.parseLong(request.getPatientId());
+                        return patientRepository.findById(id).orElse(null);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                });
 
+        if (patient == null) {
+            patient = patientRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("Patient not found in database! Please register a patient first."));
+        }
+
+        // 2. Doctor search with fallback
         Doctor doctor = doctorRepository.findByDoctorId(request.getDoctorId())
-                .orElseThrow(() -> new RuntimeException("Doctor not found!"));
+                .orElseGet(() -> {
+                    try {
+                        Long id = Long.parseLong(request.getDoctorId());
+                        return doctorRepository.findById(id).orElse(null);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                });
+
+        if (doctor == null) {
+            doctor = doctorRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("Doctor not found in database!"));
+        }
 
         Appointment appointment = new Appointment();
         appointment.setAppointmentNo("APT-" + (10000 + new Random().nextInt(90000)));

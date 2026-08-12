@@ -1,38 +1,90 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+/* Sidebar Styles */
+.sidebar {
+  width: 260px;
+  background-color: #1a2536;
+  color: #a0aec0;
   min-height: 100vh;
+}
+
+.sidebar .nav-link {
+  color: #a0aec0;
+  padding: 12px 20px;
+  font-weight: 500;
+  border-radius: 8px;
+  margin-bottom: 4px;
+}
+
+.sidebar .nav-link:hover, .sidebar .nav-link.active {
+  background-color: #2d3748;
+  color: #ffffff;
+}
+
+.sidebar-btn-new {
+  background-color: #0d52ce;
+  color: white;
+  border-radius: 8px;
+  padding: 10px;
+  font-weight: 600;
+}
+
+/* Main Content Area */
+.main-content {
+  background-color: #f4f6f9;
+  min-height: 100vh;
+}
+
+/* Card Selection Styles */
+.selection-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.selection-card:hover {
+  border-color: #0d52ce;
+  box-shadow: 0 4px 12px rgba(13, 82, 206, 0.1);
+}
+
+.selection-card.selected {
+  border: 2px solid #0d52ce;
+  background-color: #f0f5ff;
+}
+
+/* Time Slot Buttons */
+.time-slot-btn {
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background-color: white;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.time-slot-btn.selected {
+  border: 2px solid #0d52ce;
+  background-color: #f0f5ff;
+  color: #0d52ce;
+  font-weight: 700;
+}
+
+/* Stepper Circle */
+.step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  font-size: calc(10px + 2vmin);
+  font-weight: bold;
+}
+.step-active {
+  background-color: #0d52ce;
   color: white;
 }
-
-.App-link {
-  color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.step-inactive {
+  background-color: #e2e8f0;
+  color: #718096;
 }
