@@ -8,9 +8,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/medical-records")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class MedicalRecordController {
 
     private final MedicalRecordService medicalRecordService;
@@ -23,5 +26,10 @@ public class MedicalRecordController {
     @GetMapping("/appointment/{appointmentNo}")
     public ResponseEntity<MedicalRecordResponse> getRecordByAppointment(@PathVariable String appointmentNo) {
         return ResponseEntity.ok(medicalRecordService.getRecordByAppointment(appointmentNo));
+    }
+
+    @GetMapping("/patient/{patientId}")
+    public ResponseEntity<List<MedicalRecordResponse>> getPatientMedicalRecords(@PathVariable String patientId) {
+        return ResponseEntity.ok(medicalRecordService.getPatientMedicalRecords(patientId));
     }
 }

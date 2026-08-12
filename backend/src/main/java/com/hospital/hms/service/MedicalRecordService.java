@@ -5,6 +5,7 @@ import com.hospital.hms.dto.MedicalRecordResponse;
 import com.hospital.hms.model.Appointment;
 import com.hospital.hms.model.AppointmentStatus;
 import com.hospital.hms.model.MedicalRecord;
+import com.hospital.hms.model.Patient;
 import com.hospital.hms.repository.AppointmentRepository;
 import com.hospital.hms.repository.MedicalRecordRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -58,11 +61,30 @@ public class MedicalRecordService {
         return mapToResponse(record);
     }
 
+    public List<MedicalRecordResponse> getPatientMedicalRecords(String patientId) {
+        return medicalRecordRepository.findAll().stream()
+                .filter(r -> {
+                    if (r.getAppointment() == null || r.getAppointment().getPatient() == null) return false;
+                    Patient p = r.getAppointment().getPatient();
+                    
+                    // Match by custom patientId (e.g. "PAT-1001") or DB Long ID or User ID
+                    boolean matchesPatientId = p.getPatientId() != null && p.getPatientId().equals(patientId);
+                    boolean matchesDbId = String.valueOf(p.getId()).equals(patientId);
+                    boolean matchesUserId = p.getUser() != null && String.valueOf(p.getUser().getId()).equals(patientId);
+
+                    return matchesPatientId || matchesDbId || matchesUserId;
+                })
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
     private MedicalRecordResponse mapToResponse(MedicalRecord record) {
         return new MedicalRecordResponse(
                 record.getAppointment().getAppointmentNo(),
-                record.getAppointment().getPatient().getUser().getFullName(),
-                record.getAppointment().getDoctor().getUser().getFullName(),
+                record.getAppointment().getPatient() != null && record.getAppointment().getPatient().getUser() != null 
+                        ? record.getAppointment().getPatient().getUser().getFullName() : "Patient",
+                record.getAppointment().getDoctor() != null && record.getAppointment().getDoctor().getUser() != null 
+                        ? record.getAppointment().getDoctor().getUser().getFullName() : "Doctor",
                 record.getSymptoms(),
                 record.getDiagnosis(),
                 record.getPrescription(),
