@@ -1,28 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import API from '../api';
 import { useNavigate } from 'react-router-dom';
 
 function BookAppointment() {
   const navigate = useNavigate();
 
-  // Dummy lists matching UI (You can dynamic fetch from backend later)
   const departments = [
     { id: 'Cardiology', name: 'Cardiology', icon: '💙' },
     { id: 'Neurology', name: 'Neurology', icon: '🧠' },
     { id: 'Pediatrics', name: 'Pediatrics', icon: '👶' },
-    { id: 'Orthopedics', name: 'Orthopedics', icon: '🦴' }
-  ];
-
-  const doctors = [
-    { id: 1, name: 'Dr. Robert Chen', spec: 'Cardiologist • 15 yrs exp', fee: 50.00, img: 'https://i.pravatar.cc/150?img=11' },
-    { id: 2, name: 'Dr. Sarah Jenkins', spec: 'Cardiologist • 8 yrs exp', fee: 45.00, img: 'https://i.pravatar.cc/150?img=5' }
+    { id: 'Orthopedics', name: 'Orthopedics', icon: '🦴' },
+    { id: 'General', name: 'General', icon: '🩺' }
   ];
 
   const timeSlots = ['09:00 AM', '09:30 AM', '10:30 AM', '11:00 AM', '01:00 PM', '02:00 PM'];
 
-  // Form selections
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(true);
+
   const [selectedDept, setSelectedDept] = useState('Cardiology');
-  const [selectedDoctor, setSelectedDoctor] = useState(doctors[0]);
+  const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [appointmentDate, setAppointmentDate] = useState('2026-10-15');
   const [selectedTime, setSelectedTime] = useState('10:30 AM');
   const [reason, setReason] = useState('Regular checkup');
@@ -30,11 +27,41 @@ function BookAppointment() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    fetchDoctors();
+  }, []);
+
+  const fetchDoctors = async () => {
+    try {
+      setLoadingDoctors(true);
+      const res = await API.get('/doctors');
+      const fetchedDocs = Array.isArray(res.data) ? res.data : [];
+      setDoctors(fetchedDocs);
+      if (fetchedDocs.length > 0) {
+        setSelectedDoctor(fetchedDocs[0]);
+      }
+    } catch (err) {
+      console.error("Error fetching doctors:", err);
+      const fallbackDocs = [
+        { id: 1, doctorId: "1", user: { fullName: "Dr. Nimal Silva" }, specialization: "Cardiology", consultationFee: 50 },
+        { id: 2, doctorId: "2", user: { fullName: "Dr. Kasun Rajapakse" }, specialization: "Neurology", consultationFee: 60 }
+      ];
+      setDoctors(fallbackDocs);
+      setSelectedDoctor(fallbackDocs[0]);
+    } finally {
+      setLoadingDoctors(false);
+    }
+  };
+
   const handleBooking = async () => {
+    if (!selectedDoctor) {
+      setError('Please select a doctor.');
+      return;
+    }
+
     setMessage('');
     setError('');
 
-    // localStorage එකෙන් patientId එක ගැනීම (Fallback එක විදියට "1" යැවීම)
     const patientId = localStorage.getItem('patientId') || "1";
 
     const convertTo24Hour = (timeStr) => {
@@ -45,229 +72,206 @@ function BookAppointment() {
       return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
+    // 💡 Department එකත් Payload එකට එකතු කළා
     const payload = {
       patientId: String(patientId),
-      doctorId: String(selectedDoctor.id),
+      doctorId: String(selectedDoctor.doctorId || selectedDoctor.id),
+      department: selectedDept, // Selected Department
       appointmentDate: appointmentDate,
       appointmentTime: convertTo24Hour(selectedTime),
       notes: reason || "General Checkup"
     };
 
-    console.log("Final Booking Payload:", payload);
-
     try {
-      const response = await API.post('/appointments/book', payload);
+      await API.post('/appointments/book', payload);
       setMessage('Appointment Booked Successfully!');
       setTimeout(() => {
-        navigate('/patient-dashboard');
-      }, 2000);
+        navigate('/appointments');
+      }, 1000);
     } catch (err) {
       setError(err.response?.data?.message || 'Booking failed! Server error.');
     }
   };
 
   return (
-    <div className="d-flex">
-      {/* 1. Left Sidebar (Matching Design) */}
-      <div className="sidebar p-3 d-flex flex-column justify-content-between">
-        <div>
-          <div className="d-flex align-items-center mb-4 px-2">
-            <span className="fs-4 me-2">🏥</span>
-            <div>
-              <h5 className="fw-bold mb-0 text-white">OmniHealth</h5>
-              <small className="text-muted">Medical Center</small>
+    <>
+      {message && <div className="alert alert-success">{message}</div>}
+      {error && <div className="alert alert-danger">{error}</div>}
+
+      <div className="row">
+        <div className="col-lg-8">
+          <div className="bg-white p-3 rounded-4 shadow-sm mb-4">
+            <h4 className="fw-bold text-primary mb-3">Book New Appointment</h4>
+            <div className="d-flex align-items-center justify-content-between px-4">
+              <div className="text-center">
+                <div className="step-circle step-active mx-auto mb-1">1</div>
+                <small className="fw-bold text-primary">Details</small>
+              </div>
+              <div className="flex-grow-1 border-top border-2 mx-2"></div>
+              <div className="text-center">
+                <div className="step-circle step-active mx-auto mb-1">2</div>
+                <small className="fw-bold text-primary">Doctor & Time</small>
+              </div>
+              <div className="flex-grow-1 border-top border-2 mx-2"></div>
+              <div className="text-center">
+                <div className="step-circle step-inactive mx-auto mb-1">3</div>
+                <small className="text-muted">Reason</small>
+              </div>
             </div>
           </div>
 
-          <button className="btn sidebar-btn-new w-100 mb-4 text-start">
-            + New Appointment
-          </button>
-
-          <nav className="nav flex-column">
-            <a className="nav-link" href="#dashboard">📊 Dashboard</a>
-            <a className="nav-link" href="#patients">👤 Patients</a>
-            <a className="nav-link active" href="#appointments">📅 Appointments</a>
-            <a className="nav-link" href="#records">🩺 Medical Records</a>
-            <a className="nav-link" href="#settings">⚙️ Settings</a>
-          </nav>
-        </div>
-
-        <div>
-          <a className="nav-link text-danger" href="/login">🚪 Logout</a>
-        </div>
-      </div>
-
-      {/* 2. Main Content Area */}
-      <div className="main-content flex-grow-1 p-4">
-        {/* Top Header Bar */}
-        <div className="d-flex justify-content-between align-items-center mb-4">
-          <input
-            type="text"
-            className="form-control w-25 rounded-pill bg-white border-0 shadow-sm px-3"
-            placeholder="🔍 Search patients, doctors..."
-          />
-          <div className="d-flex align-items-center gap-3">
-            <span>🔔</span>
-            <span>📱</span>
-            <img src="https://i.pravatar.cc/150?img=32" alt="profile" className="rounded-circle" width="35" />
+          {/* Department Selection */}
+          <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
+            <h6 className="fw-bold mb-3">Select Department</h6>
+            <div className="row g-3">
+              {departments.map((dept) => (
+                <div className="col-6 col-md-3" key={dept.id}>
+                  <div
+                    className={`selection-card p-3 text-center ${selectedDept === dept.id ? 'selected' : ''}`}
+                    onClick={() => setSelectedDept(dept.id)}
+                    style={{ cursor: 'pointer' }}
+                  >
+                    <div className="fs-3 mb-1">{dept.icon}</div>
+                    <div className="fw-bold text-dark small">{dept.name}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
 
-        {message && <div className="alert alert-success">{message}</div>}
-        {error && <div className="alert alert-danger">{error}</div>}
-
-        <div className="row">
-          {/* Main Booking Controls */}
-          <div className="col-lg-8">
-            {/* Stepper Header */}
-            <div className="bg-white p-3 rounded-4 shadow-sm mb-4">
-              <h4 className="fw-bold text-primary mb-3">Book New Appointment</h4>
-              <div className="d-flex align-items-center justify-content-between px-4">
-                <div className="text-center">
-                  <div className="step-circle step-active mx-auto mb-1">1</div>
-                  <small className="fw-bold text-primary">Details</small>
-                </div>
-                <div className="flex-grow-1 border-top border-2 mx-2"></div>
-                <div className="text-center">
-                  <div className="step-circle step-active mx-auto mb-1">2</div>
-                  <small className="fw-bold text-primary">Doctor & Time</small>
-                </div>
-                <div className="flex-grow-1 border-top border-2 mx-2"></div>
-                <div className="text-center">
-                  <div className="step-circle step-inactive mx-auto mb-1">3</div>
-                  <small className="text-muted">Reason</small>
-                </div>
+          {/* Dynamic Doctors List */}
+          <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
+            <h6 className="fw-bold mb-3">Select Doctor</h6>
+            {loadingDoctors ? (
+              <div className="text-center py-3">
+                <div className="spinner-border spinner-border-sm text-primary me-2"></div>
+                <small className="text-muted">Loading Doctors from Database...</small>
               </div>
-            </div>
-
-            {/* Department Selection */}
-            <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
-              <h6 className="fw-bold mb-3">Select Department</h6>
+            ) : (
               <div className="row g-3">
-                {departments.map((dept) => (
-                  <div className="col-6 col-md-3" key={dept.id}>
-                    <div
-                      className={`selection-card p-3 text-center ${selectedDept === dept.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedDept(dept.id)}
-                    >
-                      <div className="fs-3 mb-1">{dept.icon}</div>
-                      <div className="fw-bold text-dark">{dept.name}</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+                {doctors.map((doc) => {
+                  const docId = doc.doctorId || doc.id;
+                  const docName = doc.user?.fullName || doc.name || `Doctor ${docId}`;
+                  const isSelected = selectedDoctor && (selectedDoctor.doctorId || selectedDoctor.id) === docId;
 
-            {/* Doctor Selection */}
-            <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
-              <h6 className="fw-bold mb-3">Select Doctor</h6>
-              <div className="row g-3">
-                {doctors.map((doc) => (
-                  <div className="col-md-6" key={doc.id}>
-                    <div
-                      className={`selection-card p-3 d-flex align-items-center ${selectedDoctor.id === doc.id ? 'selected' : ''}`}
-                      onClick={() => setSelectedDoctor(doc)}
-                    >
-                      <img src={doc.img} alt={doc.name} className="rounded-circle me-3" width="50" height="50" />
-                      <div>
-                        <h6 className="fw-bold mb-0 text-dark">{doc.name}</h6>
-                        <small className="text-muted">{doc.spec}</small>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Date and Time Selection */}
-            <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
-              <div className="row">
-                <div className="col-md-6 mb-3 mb-md-0">
-                  <h6 className="fw-bold mb-3">Select Date</h6>
-                  <input
-                    type="date"
-                    className="form-control p-2 border-1 rounded-3"
-                    value={appointmentDate}
-                    onChange={(e) => setAppointmentDate(e.target.value)}
-                  />
-                </div>
-                <div className="col-md-6">
-                  <h6 className="fw-bold mb-3">Available Times</h6>
-                  <div className="row g-2">
-                    {timeSlots.map((time) => (
-                      <div className="col-6" key={time}>
-                        <div
-                          className={`time-slot-btn ${selectedTime === time ? 'selected' : ''}`}
-                          onClick={() => setSelectedTime(time)}
-                        >
-                          {time}
+                  return (
+                    <div className="col-md-6" key={docId}>
+                      <div
+                        className={`selection-card p-3 d-flex align-items-center ${isSelected ? 'selected' : ''}`}
+                        onClick={() => setSelectedDoctor(doc)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <img 
+                          src={doc.img || "https://i.pravatar.cc/150?img=11"} 
+                          alt={docName} 
+                          className="rounded-circle me-3" 
+                          width="50" 
+                          height="50" 
+                        />
+                        <div>
+                          <h6 className="fw-bold mb-0 text-dark">{docName}</h6>
+                          <small className="text-muted">{doc.specialization || 'General Practice'}</small>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  );
+                })}
               </div>
-            </div>
+            )}
           </div>
 
-          {/* Right Summary Card (Matching Design) */}
-          <div className="col-lg-4">
-            <div className="bg-white p-4 rounded-4 shadow-sm">
-              <h5 className="fw-bold mb-4">Booking Summary</h5>
-
-              <div className="mb-3 d-flex align-items-center">
-                <span className="me-3">🏢</span>
-                <div>
-                  <small className="text-muted d-block text-uppercase fw-bold">Department</small>
-                  <span className="fw-bold text-dark">{selectedDept}</span>
-                </div>
-              </div>
-
-              <div className="mb-3 d-flex align-items-center">
-                <span className="me-3">🩺</span>
-                <div>
-                  <small className="text-muted d-block text-uppercase fw-bold">Doctor</small>
-                  <span className="fw-bold text-dark">{selectedDoctor.name}</span>
-                </div>
-              </div>
-
-              <div className="mb-4 d-flex align-items-center">
-                <span className="me-3">📅</span>
-                <div>
-                  <small className="text-muted d-block text-uppercase fw-bold">Date & Time</small>
-                  <span className="fw-bold text-dark">{appointmentDate} - {selectedTime}</span>
-                </div>
-              </div>
-
-              <div className="mb-4">
-                <label className="form-label fw-bold small text-muted text-uppercase">Reason for Visit</label>
+          {/* Date & Time */}
+          <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
+            <div className="row">
+              <div className="col-md-6 mb-3 mb-md-0">
+                <h6 className="fw-bold mb-3">Select Date</h6>
                 <input
-                  type="text"
-                  className="form-control"
-                  value={reason}
-                  onChange={(e) => setReason(e.target.value)}
-                  placeholder="e.g. Regular Checkup"
+                  type="date"
+                  className="form-control p-2 border-1 rounded-3"
+                  value={appointmentDate}
+                  onChange={(e) => setAppointmentDate(e.target.value)}
                 />
               </div>
-
-              <hr />
-
-              <div className="d-flex justify-content-between align-items-center mb-4">
-                <small className="text-muted text-uppercase fw-bold">Consultation Fee</small>
-                <h4 className="fw-bold text-primary mb-0">${selectedDoctor.fee.toFixed(2)}</h4>
+              <div className="col-md-6">
+                <h6 className="fw-bold mb-3">Available Times</h6>
+                <div className="row g-2">
+                  {timeSlots.map((time) => (
+                    <div className="col-6" key={time}>
+                      <div
+                        className={`time-slot-btn ${selectedTime === time ? 'selected' : ''}`}
+                        onClick={() => setSelectedTime(time)}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        {time}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-
-              <button className="btn btn-primary w-100 fw-bold py-2 mb-2" onClick={handleBooking}>
-                Confirm Booking &rarr;
-              </button>
-              <button className="btn btn-outline-secondary w-100 fw-bold py-2">
-                Cancel
-              </button>
             </div>
           </div>
         </div>
+
+        {/* Right Panel Summary */}
+        <div className="col-lg-4">
+          <div className="bg-white p-4 rounded-4 shadow-sm">
+            <h5 className="fw-bold mb-4">Booking Summary</h5>
+
+            <div className="mb-3 d-flex align-items-center">
+              <span className="me-3">🏢</span>
+              <div>
+                <small className="text-muted d-block text-uppercase fw-bold">Department</small>
+                <span className="fw-bold text-dark">{selectedDept}</span>
+              </div>
+            </div>
+
+            <div className="mb-3 d-flex align-items-center">
+              <span className="me-3">🩺</span>
+              <div>
+                <small className="text-muted d-block text-uppercase fw-bold">Doctor</small>
+                <span className="fw-bold text-dark">
+                  {selectedDoctor ? (selectedDoctor.user?.fullName || selectedDoctor.name || "Dr. Selected") : 'None'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mb-4 d-flex align-items-center">
+              <span className="me-3">📅</span>
+              <div>
+                <small className="text-muted d-block text-uppercase fw-bold">Date & Time</small>
+                <span className="fw-bold text-dark">{appointmentDate} - {selectedTime}</span>
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <label className="form-label fw-bold small text-muted text-uppercase">Reason for Visit</label>
+              <input
+                type="text"
+                className="form-control"
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+              />
+            </div>
+
+            <hr />
+
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <small className="text-muted text-uppercase fw-bold">Consultation Fee</small>
+              <h4 className="fw-bold text-primary mb-0">
+                ${selectedDoctor?.consultationFee ? Number(selectedDoctor.consultationFee).toFixed(2) : '50.00'}
+              </h4>
+            </div>
+
+            <button className="btn btn-primary w-100 fw-bold py-2 mb-2" onClick={handleBooking}>
+              Confirm Booking &rarr;
+            </button>
+            <button className="btn btn-outline-secondary w-100 fw-bold py-2" onClick={() => navigate('/appointments')}>
+              Cancel
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 
