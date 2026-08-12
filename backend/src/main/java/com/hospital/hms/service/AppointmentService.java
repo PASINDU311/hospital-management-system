@@ -25,7 +25,7 @@ public class AppointmentService {
 
     @Transactional
     public AppointmentResponse bookAppointment(BookAppointmentRequest request) {
-        // 1. First try by patientId string, then by DB ID (Long), and finally fallback to any existing Patient
+        // 1. Search Patient: First by patientId string, then by DB Primary Key (Long)
         Patient patient = patientRepository.findByPatientId(request.getPatientId())
                 .orElseGet(() -> {
                     try {
@@ -41,7 +41,7 @@ public class AppointmentService {
                     .orElseThrow(() -> new RuntimeException("Patient not found in database! Please register a patient first."));
         }
 
-        // 2. Doctor search with fallback
+        // 2. Search Doctor: First by doctorId string (e.g. DOC-002), then by DB Primary Key (Long)
         Doctor doctor = doctorRepository.findByDoctorId(request.getDoctorId())
                 .orElseGet(() -> {
                     try {
@@ -73,8 +73,20 @@ public class AppointmentService {
     }
 
     public List<AppointmentResponse> getPatientAppointments(String patientId) {
+        // Find Patient by patientId String or Long ID
         Patient patient = patientRepository.findByPatientId(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found!"));
+                .orElseGet(() -> {
+                    try {
+                        Long id = Long.parseLong(patientId);
+                        return patientRepository.findById(id).orElse(null);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                });
+
+        if (patient == null) {
+            throw new RuntimeException("Patient not found with ID: " + patientId);
+        }
 
         return appointmentRepository.findByPatient(patient)
                 .stream()
@@ -83,8 +95,32 @@ public class AppointmentService {
     }
 
     public List<AppointmentResponse> getDoctorAppointments(String doctorId) {
+        // Multi-fallback search for Doctor:
+        // 1. Check by doctorId field (e.g., 'DOC-002')
+        // 2. Check by doctors table Primary Key ID (e.g., 2)
+        // 3. Check by user_id linked to Doctor
         Doctor doctor = doctorRepository.findByDoctorId(doctorId)
-                .orElseThrow(() -> new RuntimeException("Doctor not found!"));
+                .orElseGet(() -> {
+                    try {
+                        Long id = Long.parseLong(doctorId);
+                        // Check if ID matches doctor table primary key
+                        Doctor docById = doctorRepository.findById(id).orElse(null);
+                        if (docById != null) {
+                            return docById;
+                        }
+                        // Check if ID matches user_id inside Doctor entity
+                        return doctorRepository.findAll().stream()
+                                .filter(d -> d.getUser() != null && d.getUser().getId().equals(id))
+                                .findFirst()
+                                .orElse(null);
+                    } catch (NumberFormatException e) {
+                        return null;
+                    }
+                });
+
+        if (doctor == null) {
+            throw new RuntimeException("Doctor not found with ID: " + doctorId);
+        }
 
         return appointmentRepository.findByDoctor(doctor)
                 .stream()
@@ -109,12 +145,12 @@ public class AppointmentService {
     private AppointmentResponse mapToResponse(Appointment apt) {
         return new AppointmentResponse(
                 apt.getAppointmentNo(),
-                apt.getDoctor().getUser().getFullName(),
-                apt.getDoctor().getSpecialization(),
-                apt.getPatient().getUser().getFullName(),
+                apt.getDoctor() != null && apt.getDoctor().getUser() != null ? apt.getDoctor().getUser().getFullName() : "Doctor",
+                apt.getDoctor() != null ? apt.getDoctor().getSpecialization() : "General",
+                apt.getPatient() != null && apt.getPatient().getUser() != null ? apt.getPatient().getUser().getFullName() : "Patient",
                 apt.getAppointmentDate(),
                 apt.getAppointmentTime(),
-                apt.getDoctor().getConsultationFee(),
+                apt.getDoctor() != null ? apt.getDoctor().getConsultationFee() : null,
                 apt.getStatus(),
                 apt.getNotes()
         );

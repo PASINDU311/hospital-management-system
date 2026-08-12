@@ -4,13 +4,21 @@ import Navbar from './components/Navbar';
 import Register from './components/Register';
 import Login from './components/Login';
 import BookAppointment from './components/BookAppointment';
-import MyAppointments from './components/MyAppointments'; // Import exact component
+import MyAppointments from './components/MyAppointments';
 import MainLayout from './components/MainLayout';
+
+// Doctor Module Components
+import DoctorLayout from './components/DoctorLayout';
+import DoctorDashboard from './components/DoctorDashboard';
+import DoctorAppointments from './components/DoctorAppointments';
+import ClinicalConsultation from './components/ClinicalConsultation';
+
 import './App.css';
 
-// Dashboards
-function DoctorDashboard() { return <div className="text-center mt-5"><h1>Doctor Dashboard (Coming Soon)</h1></div> }
-function AdminDashboard() { return <div className="text-center mt-5"><h1>Admin Dashboard (Coming Soon)</h1></div> }
+// Admin Dashboard Placeholder
+function AdminDashboard() { 
+  return <div className="text-center mt-5"><h1>Admin Dashboard (Coming Soon)</h1></div> 
+}
 
 function Home() {
   return (
@@ -28,20 +36,28 @@ function App() {
     <Router>
       <div className="container-fluid p-0">
         <Routes>
-          {/* Public Routes (With Top Navbar, without Sidebar) */}
+          {/* Public Routes */}
           <Route path="/" element={<><Navbar /><Home /></>} />
           <Route path="/register" element={<><Navbar /><Register /></>} />
           <Route path="/login" element={<><Navbar /><Login /></>} />
-          <Route path="/doctor-dashboard" element={<><Navbar /><DoctorDashboard /></>} />
           <Route path="/admin-dashboard" element={<><Navbar /><AdminDashboard /></>} />
 
-          {/* Protected Portal Routes (With Permanent Sidebar Layout) */}
+          {/* Patient Protected Portal Routes (MainLayout with Light Sidebar) */}
           <Route element={<MainLayout />}>
-            {/* Patient Dashboard and Appointments page redirecting to MyAppointments table */}
             <Route path="/patient-dashboard" element={<MyAppointments />} />
             <Route path="/appointments" element={<MyAppointments />} />
             <Route path="/book-appointment" element={<BookAppointment />} />
           </Route>
+
+          {/* Doctor Protected Portal Routes (DoctorLayout with Dark Sidebar) */}
+          <Route path="/doctor" element={<DoctorLayout />}>
+            <Route path="dashboard" element={<DoctorDashboard />} />
+            <Route path="appointments" element={<DoctorAppointments />} />
+            <Route path="consultation" element={<ClinicalConsultation />} />
+          </Route>
+
+          {/* Direct Redirect for Doctor Login (/doctor-dashboard -> /doctor/dashboard) */}
+          <Route path="/doctor-dashboard" element={<Navigate to="/doctor/dashboard" replace />} />
 
           {/* Fallback Catch-All Route */}
           <Route path="*" element={<Navigate to="/login" replace />} />
