@@ -37,7 +37,20 @@ function ClinicalConsultation() {
     const formattedNotes = `Vitals [BP: ${vitals.bp}, HR: ${vitals.hr}, Temp: ${vitals.temp}°C, SpO2: ${vitals.o2}%] | Notes: ${doctorNotes}`;
     const formattedPrescription = medications.join(', ');
     const activePatientId = localStorage.getItem('patientId') || 'P-18717';
-    const activeDoctorName = localStorage.getItem('fullName') || 'Dr. Medical Officer';
+
+    // 🛠️ FIX: Doctor Name එක හරියටම ගන්න කොටස
+    let activeDoctorName = location.state?.doctorName || localStorage.getItem('doctorName');
+    
+    if (!activeDoctorName) {
+      const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
+      if (loggedUser.role === 'DOCTOR' || loggedUser.role === 'ROLE_DOCTOR') {
+        activeDoctorName = loggedUser.fullName || loggedUser.name;
+      }
+    }
+
+    if (!activeDoctorName) {
+      activeDoctorName = 'Dr. Medical Officer';
+    }
 
     // DTO Payload
     const payload = {
