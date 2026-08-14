@@ -23,27 +23,37 @@ function Login() {
       const response = await API.post('/auth/login', formData);
       console.log("Login Response Data:", response.data);
 
-      const { token, role, email, fullName, patientId } = response.data;
+      const { token, role, email, fullName, patientId, doctorId, userId, id } = response.data;
 
-      // Role එක Enum ද String ද කියලා Safe කරගැනීම
+      // Role එක Safe කරගැනීම
       const userRole = typeof role === 'string' ? role : role?.name || String(role);
 
-      // LocalStorage Updates
+      // LocalStorage Updates (FIXED: Added User details & Doctor ID)
       localStorage.setItem('token', token || response.data.jwt);
       localStorage.setItem('role', userRole);
       localStorage.setItem('email', email || '');
       localStorage.setItem('fullName', fullName || '');
 
-      // Patient ID එක ඇත්නම් Save කිරීම
-      if (patientId) {
-        localStorage.setItem('patientId', String(patientId));
-      }
+      // Logged in User Object එක Save කිරීම
+      const userObj = {
+        id: id || userId,
+        email: email,
+        fullName: fullName,
+        role: userRole,
+        doctorId: doctorId
+      };
+      localStorage.setItem('user', JSON.stringify(userObj));
+      localStorage.setItem('userId', String(id || userId || ''));
+
+      // Patient / Doctor IDs set කිරීම
+      if (patientId) localStorage.setItem('patientId', String(patientId));
+      if (doctorId) localStorage.setItem('doctorId', String(doctorId));
 
       // 🚦 Role අනුව Redirect කිරීම
       if (userRole === 'DOCTOR') {
         navigate('/doctor-dashboard');
       } else if (userRole === 'ADMIN') {
-        navigate('/admin-dashboard'); // ✅ Admin Dashboard එකට කෙලින්ම Redirect වෙයි!
+        navigate('/admin-dashboard');
       } else if (userRole === 'PHARMACIST' || userRole === 'ROLE_PHARMACIST') {
         navigate('/pharmacy');
       } else {
@@ -57,8 +67,6 @@ function Login() {
   return (
     <div className="container-fluid p-0 vh-100 login-page">
       <div className="row g-0 vh-100">
-
-        {/* Left Side: Image & Message */}
         <div className="col-md-6 d-none d-md-flex flex-column justify-content-center align-items-center bg-primary text-white p-5 login-left-panel">
           <div className="w-75 text-center">
             <h1 className="display-4 fw-bold mb-4">🏥 HMS Portal</h1>
@@ -69,7 +77,6 @@ function Login() {
           </div>
         </div>
 
-        {/* Right Side: Login Form */}
         <div className="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center p-5">
           <div className="login-form-container">
             <h2 className="fw-bold mb-3 text-dark">Welcome back</h2>
@@ -129,7 +136,6 @@ function Login() {
             </form>
           </div>
 
-          {/* Bottom Security Label */}
           <div className="small text-muted mt-5 text-center security-label">
             🛡️ HMS Compliant Secure Login
           </div>

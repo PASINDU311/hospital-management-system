@@ -13,14 +13,50 @@ function DoctorAppointments() {
 
   const fetchAppointments = async () => {
     try {
-      // LocalStorage එකේ තියෙන Doctor ID එක හෝ User Details ලබා ගැනීම
-      const doctorId = localStorage.getItem('doctorId') || 'DOC-002'; // Default to DOC-002 if not set
+      setLoading(true);
 
-      // Real Appointments Fetch කිරීම
-      const response = await API.get(`/appointments/doctor/${doctorId}`);
-      setAppointments(response.data || []);
+      // 1. Session / LocalStorage Details
+      const userEmail = localStorage.getItem('email');
+      const loggedInUserStr = localStorage.getItem('user');
+      const loggedInUser = loggedInUserStr ? JSON.parse(loggedInUserStr) : null;
+
+      let doctorIdentifier = 
+        localStorage.getItem('doctorId') || 
+        loggedInUser?.doctorId || 
+        loggedInUser?.id || 
+        localStorage.getItem('userId');
+
+      // 2. Doctor Identifier එක LocalStorage එකේ නැත්නම් Dynamic Auto-Fallback Logic
+      if (!doctorIdentifier || doctorIdentifier === 'null' || doctorIdentifier === 'undefined') {
+        try {
+          const docRes = await API.get('/doctors');
+          const allDocs = docRes.data || [];
+
+          // Logged-in Doctor ගේ Email/User ID එකෙන් Doctor Match කිරීම
+          const matchedDoc = allDocs.find(d => 
+            (d.user && d.user.email === userEmail) || 
+            d.email === userEmail ||
+            (d.user && String(d.user.id) === String(loggedInUser?.id))
+          );
+
+          if (matchedDoc) {
+            doctorIdentifier = matchedDoc.doctorId || matchedDoc.id;
+            localStorage.setItem('doctorId', String(doctorIdentifier)); // Save for next time
+          }
+        } catch (e) {
+          console.error("Auto-detect doctor failed:", e);
+        }
+      }
+
+      // 3. Match වුණු Doctor ගේ Appointments Fetch කිරීම
+      if (doctorIdentifier) {
+        const response = await API.get(`/appointments/doctor/${doctorIdentifier}`);
+        setAppointments(response.data || []);
+      } else {
+        setAppointments([]);
+      }
     } catch (err) {
-      console.error('Error fetching real appointments:', err);
+      console.error('Error fetching doctor appointments:', err);
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -42,15 +78,15 @@ function DoctorAppointments() {
         </div>
       </div>
 
-      {/* Table Container */}
       <div className="card border-0 shadow-sm rounded-4 bg-white p-4">
         <div className="table-responsive">
           {loading ? (
             <p className="text-center py-3">Loading appointments...</p>
           ) : appointments.length === 0 ? (
-            <div className="text-center py-4 text-muted">
-              <h5>No real appointments found for this doctor yet!</h5>
-              <small>Book an appointment as a Patient to test this flow.</small>
+            <div className="text-center py-5 text-muted">
+              <div className="fs-1 mb-2">📅</div>
+              <h5 className="fw-bold">No appointments found for you yet!</h5>
+              <small>When patients book appointments with you, they will appear here.</small>
             </div>
           ) : (
             <table className="table align-middle">
