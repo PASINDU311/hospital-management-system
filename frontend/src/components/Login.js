@@ -28,9 +28,10 @@ function Login() {
       // 1. JWT Token Extraction
       const token = res.token || res.jwt || res.accessToken;
 
-      // 2. Role Extraction
+      // 2. Role Extraction & Normalization
       const rawRole = res.role || res.user?.role;
-      const userRole = typeof rawRole === 'string' ? rawRole : rawRole?.name || String(rawRole || '');
+      const extractedRole = typeof rawRole === 'string' ? rawRole : rawRole?.name || String(rawRole || '');
+      const userRole = extractedRole.toUpperCase(); // Ensures safe matching regardless of case
 
       // 3. Full Name Extraction
       const fullName = res.fullName || res.name || res.user?.fullName || (userRole.includes('DOCTOR') ? 'Doctor' : 'User');
@@ -39,7 +40,7 @@ function Login() {
       const extractedPatientId = res.patientId || res.patient?.patientId || res.user?.patientId;
       const extractedDoctorId = res.doctorId || res.doctor?.doctorId || res.user?.doctorId;
 
-      // FIXED: Clear ONLY current tab's sessionStorage to keep multi-tab isolation intact
+      // Clear current tab's session storage
       sessionStorage.clear();
 
       if (token) {
@@ -81,15 +82,16 @@ function Login() {
       localStorage.setItem('user', JSON.stringify(userObj));
 
       // 🚦 Navigation Logic
-      if (userRole === 'DOCTOR' || userRole === 'ROLE_DOCTOR') {
+      if (userRole.includes('DOCTOR')) {
         navigate('/doctor/dashboard');
-      } else if (userRole === 'ADMIN' || userRole === 'ROLE_ADMIN') {
+      } else if (userRole.includes('ADMIN')) {
         navigate('/admin-dashboard');
-      } else if (userRole === 'PHARMACIST' || userRole === 'ROLE_PHARMACIST') {
-        navigate('/pharmacy');
+      } else if (userRole.includes('PHARMACIST')) {
+        navigate('/pharmacy'); // 🎯 Direct Pharmacist Navigation
       } else {
         navigate('/appointments');
       }
+
     } catch (err) {
       console.error('Login Error:', err);
       setError(err.response?.data?.message || 'Login failed! Invalid credentials.');
@@ -99,6 +101,8 @@ function Login() {
   return (
     <div className="container-fluid p-0 vh-100 login-page">
       <div className="row g-0 vh-100">
+        
+        {/* Left Side Banner */}
         <div className="col-md-6 d-none d-md-flex flex-column justify-content-center align-items-center bg-primary text-white p-5 login-left-panel">
           <div className="w-75 text-center">
             <h1 className="display-4 fw-bold mb-4">🏥 HMS Portal</h1>
@@ -109,6 +113,7 @@ function Login() {
           </div>
         </div>
 
+        {/* Right Side Form */}
         <div className="col-md-6 bg-white d-flex flex-column justify-content-center align-items-center p-5">
           <div className="login-form-container">
             <h2 className="fw-bold mb-3 text-dark">Welcome back</h2>
@@ -172,6 +177,7 @@ function Login() {
             🛡️ HMS Compliant Secure Login
           </div>
         </div>
+
       </div>
     </div>
   );
