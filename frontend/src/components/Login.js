@@ -84,7 +84,7 @@ function Login() {
       if (userRole === 'DOCTOR' || userRole === 'ROLE_DOCTOR') {
         navigate('/doctor/dashboard');
       } else if (userRole === 'ADMIN' || userRole === 'ROLE_ADMIN') {
-        navigate('/admin');
+        navigate('/admin-dashboard');
       } else if (userRole === 'PHARMACIST' || userRole === 'ROLE_PHARMACIST') {
         navigate('/pharmacy');
       } else {
