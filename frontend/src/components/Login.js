@@ -25,9 +25,12 @@ function Login() {
 
       const { token, role, email, fullName, patientId } = response.data;
 
+      // Role එක Enum ද String ද කියලා Safe කරගැනීම
+      const userRole = typeof role === 'string' ? role : role?.name || String(role);
+
       // LocalStorage Updates
       localStorage.setItem('token', token || response.data.jwt);
-      localStorage.setItem('role', role);
+      localStorage.setItem('role', userRole);
       localStorage.setItem('email', email || '');
       localStorage.setItem('fullName', fullName || '');
 
@@ -36,12 +39,12 @@ function Login() {
         localStorage.setItem('patientId', String(patientId));
       }
 
-      // Role අනුව Redirect කිරීම
-      if (role === 'DOCTOR') {
+      // 🚦 Role අනුව Redirect කිරීම
+      if (userRole === 'DOCTOR') {
         navigate('/doctor-dashboard');
-      } else if (role === 'ADMIN') {
-        navigate('/admin-dashboard');
-      }else if (role === 'PHARMACIST' || role === 'ROLE_PHARMACIST') {
+      } else if (userRole === 'ADMIN') {
+        navigate('/admin-dashboard'); // ✅ Admin Dashboard එකට කෙලින්ම Redirect වෙයි!
+      } else if (userRole === 'PHARMACIST' || userRole === 'ROLE_PHARMACIST') {
         navigate('/pharmacy');
       } else {
         navigate('/appointments');
@@ -86,7 +89,7 @@ function Login() {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="pasindu@gmail.com"
+                    placeholder="admin@gmail.com"
                   />
                 </div>
               </div>
