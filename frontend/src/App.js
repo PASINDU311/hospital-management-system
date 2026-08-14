@@ -1,16 +1,23 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+// Layout & Common Components
 import Navbar from './components/Navbar';
+import MainLayout from './components/MainLayout';
+import Home from './components/Home'; // ✅ อලුත් Modern Home Component එක
+
+// Auth & Public Components
 import Register from './components/Register';
 import Login from './components/Login';
+
+// Patient Components
 import BookAppointment from './components/BookAppointment';
 import MyAppointments from './components/MyAppointments';
-import MainLayout from './components/MainLayout';
-import Pharmacy from './components/Pharmacy';
-import AdminDashboard from './components/AdminDashboard'; // ✅ Real Component Import
-
-// MedicalRecords Component එක Import කරගැනීම
 import MedicalRecords from './components/MedicalRecords';
+
+// Admin & Pharmacy Components
+import AdminDashboard from './components/AdminDashboard'; // ✅ Real Admin Dashboard
+import Pharmacy from './components/Pharmacy';
 
 // Doctor Module Components
 import DoctorLayout from './components/DoctorLayout';
@@ -20,27 +27,18 @@ import ClinicalConsultation from './components/ClinicalConsultation';
 
 import './App.css';
 
-function Home() {
-  return (
-    <div className="text-center my-5">
-      <h1 className="fw-bold text-primary">Welcome to Hospital Management System</h1>
-      <p className="lead text-secondary">
-        Please login or register to book appointments and access medical services.
-      </p>
-    </div>
-  );
-}
-
 function App() {
   return (
     <Router>
       <div className="container-fluid p-0">
         <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<><Navbar /><Home /></>} />
+          {/* 🎯 Public Landing Page (Home Component එකේම Built-in Navbar එකක් තියෙන නිසා මෙතනට Navbar එක ඕන නෑ) */}
+          <Route path="/" element={<Home />} />
+
+          {/* Public Auth Routes */}
           <Route path="/register" element={<><Navbar /><Register /></>} />
           <Route path="/login" element={<><Navbar /><Login /></>} />
-          
+
           {/* Admin Dashboard Route */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
@@ -49,8 +47,6 @@ function App() {
             <Route path="/patient-dashboard" element={<MyAppointments />} />
             <Route path="/appointments" element={<MyAppointments />} />
             <Route path="/book-appointment" element={<BookAppointment />} />
-            
-            {/* Medical Records Route */}
             <Route path="/medical-records" element={<MedicalRecords />} />
           </Route>
 
@@ -67,7 +63,7 @@ function App() {
           {/* Pharmacy Route */}
           <Route path="/pharmacy" element={<Pharmacy />} />
 
-          {/* Fallback Catch-All Route (Must be at the very bottom) */}
+          {/* 🚨 Fallback Catch-All Route (Must strictly be at the VERY BOTTOM) */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
