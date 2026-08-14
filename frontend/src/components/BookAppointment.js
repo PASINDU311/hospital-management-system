@@ -38,19 +38,16 @@ function BookAppointment() {
     if (allDoctors.length > 0) {
       const filtered = allDoctors.filter(doc => {
         if (!doc.specialization) return false;
-        
+
         const spec = doc.specialization.toLowerCase();
         const dept = selectedDept.toLowerCase();
 
-        // Matches exact or partial words (e.g., 'Cardiologist' matches 'Cardiology')
         return spec.includes(dept) || dept.includes(spec) || selectedDept === 'General';
       });
 
-      // If no matching doctors in selected department, show all doctors so user can still book
       const listToDisplay = filtered.length > 0 ? filtered : allDoctors;
       setFilteredDoctors(listToDisplay);
 
-      // Automatically select the first doctor from the list
       if (listToDisplay.length > 0) {
         setSelectedDoctor(listToDisplay[0]);
       } else {
@@ -85,7 +82,14 @@ function BookAppointment() {
     setMessage('');
     setError('');
 
-    const patientId = localStorage.getItem('patientId') || "1";
+    // FIXED: Strictly fetch logged-in user's patientId from TAB-ISOLATED sessionStorage!
+    // Fallback to localStorage only if sessionStorage is missing, and REMOVED hardcoded "1".
+    const patientId = sessionStorage.getItem('patientId') || localStorage.getItem('patientId');
+
+    if (!patientId) {
+      setError('Patient session expired or invalid. Please login again.');
+      return;
+    }
 
     const convertTo24Hour = (timeStr) => {
       const [time, modifier] = timeStr.split(' ');
@@ -96,7 +100,7 @@ function BookAppointment() {
     };
 
     const payload = {
-      patientId: String(patientId),
+      patientId: String(patientId), // Always sends current tab's active patientId
       doctorId: String(selectedDoctor.doctorId || selectedDoctor.id),
       department: selectedDept,
       appointmentDate: appointmentDate,

@@ -23,43 +23,75 @@ function Login() {
       const response = await API.post('/auth/login', formData);
       console.log("Login Response Data:", response.data);
 
-      const { token, role, email, fullName, patientId, doctorId, userId, id } = response.data;
+      const res = response.data;
 
-      // Role එක Safe කරගැනීම
-      const userRole = typeof role === 'string' ? role : role?.name || String(role);
+      // 1. JWT Token Extraction
+      const token = res.token || res.jwt || res.accessToken;
 
-      // LocalStorage Updates (FIXED: Added User details & Doctor ID)
-      localStorage.setItem('token', token || response.data.jwt);
+      // 2. Role Extraction
+      const rawRole = res.role || res.user?.role;
+      const userRole = typeof rawRole === 'string' ? rawRole : rawRole?.name || String(rawRole || '');
+
+      // 3. Full Name Extraction
+      const fullName = res.fullName || res.name || res.user?.fullName || (userRole.includes('DOCTOR') ? 'Doctor' : 'User');
+
+      // 4. Clean ID Extractions
+      const extractedPatientId = res.patientId || res.patient?.patientId || res.user?.patientId;
+      const extractedDoctorId = res.doctorId || res.doctor?.doctorId || res.user?.doctorId;
+
+      // FIXED: Clear ONLY current tab's sessionStorage to keep multi-tab isolation intact
+      sessionStorage.clear();
+
+      if (token) {
+        sessionStorage.setItem('token', token);
+        localStorage.setItem('token', token); // Backup for page refresh persistence
+      }
+
+      sessionStorage.setItem('role', userRole);
       localStorage.setItem('role', userRole);
-      localStorage.setItem('email', email || '');
-      localStorage.setItem('fullName', fullName || '');
 
-      // Logged in User Object එක Save කිරීම
+      sessionStorage.setItem('email', res.email || res.user?.email || formData.email);
+      sessionStorage.setItem('fullName', fullName);
+
+      // Save Patient ID if user is PATIENT
+      if (userRole.includes('PATIENT') && extractedPatientId) {
+        sessionStorage.setItem('patientId', String(extractedPatientId));
+        localStorage.setItem('patientId', String(extractedPatientId));
+        console.log("Saved Patient ID successfully:", extractedPatientId);
+      }
+
+      // Save Doctor ID if user is DOCTOR
+      if (userRole.includes('DOCTOR') && extractedDoctorId) {
+        sessionStorage.setItem('doctorId', String(extractedDoctorId));
+        localStorage.setItem('doctorId', String(extractedDoctorId));
+        console.log("Saved Doctor ID successfully:", extractedDoctorId);
+      }
+
+      // 5. User Object Storage
       const userObj = {
-        id: id || userId,
-        email: email,
+        id: res.id || res.userId || res.user?.id,
+        email: res.email || res.user?.email || formData.email,
         fullName: fullName,
         role: userRole,
-        doctorId: doctorId
+        doctorId: extractedDoctorId || null,
+        patientId: extractedPatientId || null
       };
+
+      sessionStorage.setItem('user', JSON.stringify(userObj));
       localStorage.setItem('user', JSON.stringify(userObj));
-      localStorage.setItem('userId', String(id || userId || ''));
 
-      // Patient / Doctor IDs set කිරීම
-      if (patientId) localStorage.setItem('patientId', String(patientId));
-      if (doctorId) localStorage.setItem('doctorId', String(doctorId));
-
-      // 🚦 Role අනුව Redirect කිරීම
-      if (userRole === 'DOCTOR') {
-        navigate('/doctor-dashboard');
-      } else if (userRole === 'ADMIN') {
-        navigate('/admin-dashboard');
+      // 🚦 Navigation Logic
+      if (userRole === 'DOCTOR' || userRole === 'ROLE_DOCTOR') {
+        navigate('/doctor/dashboard');
+      } else if (userRole === 'ADMIN' || userRole === 'ROLE_ADMIN') {
+        navigate('/admin');
       } else if (userRole === 'PHARMACIST' || userRole === 'ROLE_PHARMACIST') {
         navigate('/pharmacy');
       } else {
         navigate('/appointments');
       }
     } catch (err) {
+      console.error('Login Error:', err);
       setError(err.response?.data?.message || 'Login failed! Invalid credentials.');
     }
   };

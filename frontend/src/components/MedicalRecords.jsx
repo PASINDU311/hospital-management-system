@@ -13,37 +13,40 @@ function MedicalRecords() {
 
   const fetchRecords = async () => {
     setLoading(true);
-    let apiRecords = [];
+    // Read patient ID from TAB-ISOLATED sessionStorage
+    const patientId = sessionStorage.getItem('patientId') || localStorage.getItem('patientId');
 
-    try {
-      const patientId = localStorage.getItem('patientId') || 'P-18717';
-      const response = await API.get(`/medical-records/patient/${patientId}`);
-      if (response.data && Array.isArray(response.data)) {
-        apiRecords = response.data;
-      }
-    } catch (err) {
-      console.log('Backend API responded with 404/Error. Fallback to Local Records.');
+    if (!patientId) {
+      console.warn("No patientId found in session storage!");
+      setRecords([]);
+      setLoading(false);
+      return;
     }
 
-    const localSaved = JSON.parse(localStorage.getItem('shared_medical_records') || '[]');
-    const combined = [...localSaved, ...apiRecords];
-
-    setRecords(combined);
-    setLoading(false);
+    try {
+      const response = await API.get(`/medical-records/patient/${patientId}`);
+      if (response.data && Array.isArray(response.data)) {
+        setRecords(response.data);
+      } else {
+        setRecords([]);
+      }
+    } catch (err) {
+      console.error('Error fetching medical records from API:', err);
+      setRecords([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Enhanced parsePrescriptions function supporting multiple string formats
   const parsePrescriptions = (prescStr) => {
     if (!prescStr || typeof prescStr !== 'string' || !prescStr.trim()) return [];
 
-    // Split string by commas or newlines
     const items = prescStr.split(/,|\n/);
 
     return items
       .map((item) => item.trim())
       .filter((item) => item.length > 0)
       .map((item, index) => {
-        // 1. Pipe Format: "Medication | Type | Dosage | Duration"
         if (item.includes('|')) {
           const parts = item.split('|');
           return {
@@ -55,7 +58,6 @@ function MedicalRecords() {
           };
         }
 
-        // 2. Dash Format: "Drug Name - Dosage Info"
         if (item.includes('-')) {
           const firstDashIndex = item.indexOf('-');
           const drugName = item.substring(0, firstDashIndex).trim();
@@ -70,7 +72,6 @@ function MedicalRecords() {
           };
         }
 
-        // 3. Simple String Format
         return {
           id: index,
           medication: item,
@@ -91,7 +92,7 @@ function MedicalRecords() {
     return (
       <div className="container py-4">
         <div className="d-flex justify-content-between align-items-center mb-4 d-print-none">
-          <button 
+          <button
             className="btn btn-outline-secondary rounded-3 fw-bold"
             onClick={() => setSelectedRecord(null)}
           >
@@ -115,11 +116,10 @@ function MedicalRecords() {
               <div className="d-flex justify-content-between align-items-center">
                 <div className="d-flex align-items-center gap-3">
                   <div className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold fs-4" style={{ width: 50, height: 50 }}>
-                    {selectedRecord.patientName ? selectedRecord.patientName.charAt(0).toUpperCase() : 'U'}
+                    {selectedRecord.patientName ? selectedRecord.patientName.charAt(0).toUpperCase() : 'P'}
                   </div>
                   <div>
-                    <h5 className="fw-bold mb-0">{selectedRecord.patientName || 'umayanga wanasingha'}</h5>
-                    <small className="text-muted">ID: {selectedRecord.patientId || 'P-18717'}</small>
+                    <h5 className="fw-bold mb-0">{selectedRecord.patientName || 'Patient'}</h5>
                   </div>
                 </div>
                 <span className="badge bg-success-subtle text-success px-3 py-2 rounded-pill">Completed</span>
@@ -140,7 +140,7 @@ function MedicalRecords() {
               <div className="p-3 bg-primary bg-opacity-10 rounded-3 mb-3">
                 <h6 className="fw-bold text-dark mb-0">{selectedRecord.diagnosis}</h6>
               </div>
-              
+
               <small className="text-uppercase fw-bold text-muted d-block mb-1">Clinical Notes</small>
               <p className="text-secondary">{selectedRecord.doctorNotes || 'No notes.'}</p>
             </div>
@@ -185,7 +185,7 @@ function MedicalRecords() {
     );
   }
 
-  const filteredRecords = records.filter(r => 
+  const filteredRecords = records.filter(r =>
     r.doctorName?.toLowerCase().includes(search.toLowerCase()) ||
     r.diagnosis?.toLowerCase().includes(search.toLowerCase())
   );
@@ -200,9 +200,9 @@ function MedicalRecords() {
       </div>
 
       <div className="card border-0 shadow-sm rounded-4 bg-white p-3 mb-4 d-print-none">
-        <input 
-          type="text" 
-          className="form-control border-light-subtle rounded-3" 
+        <input
+          type="text"
+          className="form-control border-light-subtle rounded-3"
           placeholder="🔍 Search by doctor or diagnosis..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -246,7 +246,7 @@ function MedicalRecords() {
                       </small>
                     </td>
                     <td className="text-end">
-                      <button 
+                      <button
                         className="btn btn-outline-primary btn-sm rounded-2 fw-bold px-3"
                         onClick={() => setSelectedRecord(rec)}
                       >

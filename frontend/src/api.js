@@ -7,15 +7,19 @@ const API = axios.create({
   },
 });
 
-// Interceptor to append Bearer token automatically
-API.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+// Interceptor to append Bearer token automatically from TAB-ISOLATED sessionStorage
+API.interceptors.request.use(
+  (config) => {
+    // Read ONLY from sessionStorage to prevent cross-tab session leakage
+    const token = sessionStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
-  return config;
-}, (error) => {
-  return Promise.reject(error);
-});
+);
 
 export default API;

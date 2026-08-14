@@ -1,24 +1,41 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 function DoctorLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const doctorName = localStorage.getItem('fullName') || 'Dr. Richardson';
+  const [doctorName, setDoctorName] = useState('Doctor');
+
+  useEffect(() => {
+    // sessionStorage එකෙන් Doctor Name එක dynamically අදිනවා
+    const storedName = sessionStorage.getItem('fullName');
+    const userStr = sessionStorage.getItem('user');
+
+    if (storedName && storedName.trim() !== '') {
+      setDoctorName(storedName);
+    } else if (userStr) {
+      try {
+        const uObj = JSON.parse(userStr);
+        if (uObj.fullName) setDoctorName(uObj.fullName);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+  }, []);
+
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    localStorage.clear();
+    sessionStorage.clear();
     navigate('/login');
   };
 
   return (
     <div className="d-flex" style={{ minHeight: '100vh', backgroundColor: '#f8f9fa' }}>
-      
       {/* Dark Sidebar */}
-      <div 
-        className="d-flex flex-column justify-content-between p-3 text-white" 
+      <div
+        className="d-flex flex-column justify-content-between p-3 text-white"
         style={{ width: '260px', backgroundColor: '#1e293b', flexShrink: 0 }}
       >
         <div>
@@ -66,20 +83,20 @@ function DoctorLayout() {
 
           {/* Doctor Profile Footer */}
           <div className="p-2 rounded-3 bg-dark bg-opacity-50 d-flex align-items-center gap-3 mb-2">
-            <img 
-              src="https://i.pravatar.cc/150?img=60" 
-              alt="doctor" 
+            <img
+              src="https://i.pravatar.cc/150?img=60"
+              alt="doctor"
               className="rounded-circle"
-              width="40" 
-              height="40" 
+              width="40"
+              height="40"
             />
             <div className="overflow-hidden">
               <div className="fw-bold small text-truncate">{doctorName}</div>
-              <small className="text-muted d-block small">Chief of Surgery</small>
+              <small className="text-muted d-block small">Medical Specialist</small>
             </div>
           </div>
 
-          <button 
+          <button
             className="btn btn-sm btn-outline-light border-0 w-100 text-start text-danger opacity-75 mt-1"
             onClick={handleLogout}
           >
@@ -94,10 +111,10 @@ function DoctorLayout() {
         <div className="bg-white border-bottom px-4 py-3 d-flex justify-content-between align-items-center">
           <div className="input-group" style={{ maxWidth: '350px' }}>
             <span className="input-group-text bg-light border-end-0">🔍</span>
-            <input 
-              type="text" 
-              className="form-control bg-light border-start-0 shadow-none" 
-              placeholder="Search patients, records..." 
+            <input
+              type="text"
+              className="form-control bg-light border-start-0 shadow-none"
+              placeholder="Search patients, records..."
             />
           </div>
           <div className="d-flex align-items-center gap-3">
@@ -119,7 +136,6 @@ function DoctorLayout() {
           </div>
         </footer>
       </div>
-
     </div>
   );
 }

@@ -1,12 +1,38 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
 function MainLayout() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const userRole = localStorage.getItem('role') || 'PATIENT';
-  const fullName = localStorage.getItem('fullName') || 'User';
+  // State එකක් විදිහට Name එක සහ Role එක තියාගන්නවා (Dynamic වෙන්න)
+  const [userRole, setUserRole] = useState('PATIENT');
+  const [fullName, setFullName] = useState('User');
+
+  useEffect(() => {
+    // 1. Storage දෙකෙන්ම Role එක check කිරීම
+    const role = sessionStorage.getItem('role') || localStorage.getItem('role') || 'PATIENT';
+    setUserRole(role);
+
+    // 2. Dynamic Full Name එක Session storage සහ Local storage වලින් ලබා ගැනීම
+    const name = sessionStorage.getItem('fullName') || localStorage.getItem('fullName');
+    
+    if (name && name.trim() !== '') {
+      setFullName(name);
+    } else {
+      // JSON 'user' object එකෙන් check කිරීම (fallback එකක් විදිහට)
+      const userStr = sessionStorage.getItem('user') || localStorage.getItem('user');
+      if (userStr) {
+        try {
+          const userObj = JSON.parse(userStr);
+          if (userObj.fullName) setFullName(userObj.fullName);
+          else if (userObj.name) setFullName(userObj.name);
+        } catch (e) {
+          console.error("Error parsing user profile:", e);
+        }
+      }
+    }
+  }, [location.pathname]); // Route එක මාරු වෙද්දිත් auto refresh වෙනවා
 
   const isActive = (path) => location.pathname === path;
 
@@ -112,6 +138,7 @@ function MainLayout() {
             placeholder="🔍 Search patients, doctors..."
           />
           <div className="d-flex align-items-center gap-3">
+            {/* Dynamic Name එක මෙතැන පෙන්වයි */}
             <span className="fw-semibold text-secondary me-2">{fullName}</span>
             <span>🔔</span>
             <span>📱</span>
