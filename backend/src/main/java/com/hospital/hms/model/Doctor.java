@@ -1,5 +1,6 @@
 package com.hospital.hms.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,15 +19,16 @@ public class Doctor {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @OneToOne(fetch = FetchType.EAGER) // EAGER දැම්මම User details එකපාරම Fetch වෙනවා
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"password", "doctor", "hibernateLazyInitializer", "handler"}) // Infinite loop වැලැක්වීමට
     private User user;
 
     @Column(nullable = false)
     private String doctorId;
 
     @Column(nullable = false)
-    private String specialization; // e.g., Cardiologist, Neurologist
+    private String specialization; // e.g., Cardiology, Neurologist
 
     @Column(nullable = false)
     private String slmcRegisterNo; // Medical Council License

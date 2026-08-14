@@ -26,7 +26,7 @@ public class AdminService {
     private final PasswordEncoder passwordEncoder;
 
     // =========================================================================
-    // 1. REGISTER DOCTOR
+    // 1. REGISTER DOCTOR (Via Explicit Doctor Form)
     // =========================================================================
     @Transactional
     public String registerDoctor(RegisterDoctorRequest request) {
@@ -75,26 +75,42 @@ public class AdminService {
     }
 
     // =========================================================================
-    // 3. GET ALL USERS (Added for User Management Table)
+    // 3. GET ALL USERS
     // =========================================================================
     public List<User> getAllUsers() {
         return userRepository.findAll();
     }
 
     // =========================================================================
-    // 4. CREATE NEW USER (Added for Add User Modal)
+    // 4. CREATE NEW USER (FIXED: Auto Create Doctor Record if Role is DOCTOR)
     // =========================================================================
     @Transactional
     public User createUser(User user) {
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
             throw new RuntimeException("Email is already registered!");
         }
-        
+
         // Encode password securely
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setActive(true);
         user.setCreatedAt(LocalDateTime.now());
 
-        return userRepository.save(user);
+        // 1. Save User to 'users' table
+        User savedUser = userRepository.save(user);
+
+        // 2. If Role is DOCTOR, automatically create record in 'doctors' table!
+        if (user.getRole() == Role.DOCTOR) {
+            Doctor doctor = new Doctor();
+            doctor.setUser(savedUser);
+            doctor.setDoctorId("DOC-" + (100 + new Random().nextInt(900)));
+            doctor.setSpecialization("General"); // Default specialization
+            doctor.setSlmcRegisterNo("SLMC-" + (1000 + new Random().nextInt(9000)));
+            doctor.setConsultationFee(new BigDecimal("2500.00")); // Default fee
+            doctor.setAvailableDays("Monday,Tuesday,Wednesday,Thursday,Friday");
+
+            doctorRepository.save(doctor);
+        }
+
+        return savedUser;
     }
 }

@@ -15,7 +15,8 @@ function BookAppointment() {
 
   const timeSlots = ['09:00 AM', '09:30 AM', '10:30 AM', '11:00 AM', '01:00 PM', '02:00 PM'];
 
-  const [doctors, setDoctors] = useState([]);
+  const [allDoctors, setAllDoctors] = useState([]);
+  const [filteredDoctors, setFilteredDoctors] = useState([]);
   const [loadingDoctors, setLoadingDoctors] = useState(true);
 
   const [selectedDept, setSelectedDept] = useState('Cardiology');
@@ -23,31 +24,53 @@ function BookAppointment() {
   const [appointmentDate, setAppointmentDate] = useState('2026-10-15');
   const [selectedTime, setSelectedTime] = useState('10:30 AM');
   const [reason, setReason] = useState('Regular checkup');
-  
+
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
+  // 1. Fetch Doctors from Backend Database
   useEffect(() => {
     fetchDoctors();
   }, []);
+
+  // 2. Filter Doctors dynamically whenever Department or All Doctors list changes
+  useEffect(() => {
+    if (allDoctors.length > 0) {
+      const filtered = allDoctors.filter(doc => {
+        if (!doc.specialization) return false;
+        
+        const spec = doc.specialization.toLowerCase();
+        const dept = selectedDept.toLowerCase();
+
+        // Matches exact or partial words (e.g., 'Cardiologist' matches 'Cardiology')
+        return spec.includes(dept) || dept.includes(spec) || selectedDept === 'General';
+      });
+
+      // If no matching doctors in selected department, show all doctors so user can still book
+      const listToDisplay = filtered.length > 0 ? filtered : allDoctors;
+      setFilteredDoctors(listToDisplay);
+
+      // Automatically select the first doctor from the list
+      if (listToDisplay.length > 0) {
+        setSelectedDoctor(listToDisplay[0]);
+      } else {
+        setSelectedDoctor(null);
+      }
+    } else {
+      setFilteredDoctors([]);
+      setSelectedDoctor(null);
+    }
+  }, [selectedDept, allDoctors]);
 
   const fetchDoctors = async () => {
     try {
       setLoadingDoctors(true);
       const res = await API.get('/doctors');
       const fetchedDocs = Array.isArray(res.data) ? res.data : [];
-      setDoctors(fetchedDocs);
-      if (fetchedDocs.length > 0) {
-        setSelectedDoctor(fetchedDocs[0]);
-      }
+      setAllDoctors(fetchedDocs);
     } catch (err) {
       console.error("Error fetching doctors:", err);
-      const fallbackDocs = [
-        { id: 1, doctorId: "1", user: { fullName: "Dr. Nimal Silva" }, specialization: "Cardiology", consultationFee: 50 },
-        { id: 2, doctorId: "2", user: { fullName: "Dr. Kasun Rajapakse" }, specialization: "Neurology", consultationFee: 60 }
-      ];
-      setDoctors(fallbackDocs);
-      setSelectedDoctor(fallbackDocs[0]);
+      setError("Failed to fetch doctors from database.");
     } finally {
       setLoadingDoctors(false);
     }
@@ -72,11 +95,10 @@ function BookAppointment() {
       return `${String(hours).padStart(2, '0')}:${minutes}:00`;
     };
 
-    // 💡 Department එකත් Payload එකට එකතු කළා
     const payload = {
       patientId: String(patientId),
       doctorId: String(selectedDoctor.doctorId || selectedDoctor.id),
-      department: selectedDept, // Selected Department
+      department: selectedDept,
       appointmentDate: appointmentDate,
       appointmentTime: convertTo24Hour(selectedTime),
       notes: reason || "General Checkup"
@@ -91,6 +113,12 @@ function BookAppointment() {
     } catch (err) {
       setError(err.response?.data?.message || 'Booking failed! Server error.');
     }
+  };
+
+  // Helper function to extract doctor's full name safely
+  const getDoctorName = (doc) => {
+    if (!doc) return 'None';
+    return doc.user?.fullName || doc.fullName || doc.name || `Doctor (${doc.doctorId || doc.id})`;
   };
 
   return (
@@ -141,17 +169,23 @@ function BookAppointment() {
 
           {/* Dynamic Doctors List */}
           <div className="bg-white p-4 rounded-4 shadow-sm mb-4">
-            <h6 className="fw-bold mb-3">Select Doctor</h6>
+            <h6 className="fw-bold mb-3">
+              Select Doctor {filteredDoctors.length > 0 && `(${filteredDoctors.length} Available)`}
+            </h6>
             {loadingDoctors ? (
               <div className="text-center py-3">
                 <div className="spinner-border spinner-border-sm text-primary me-2"></div>
                 <small className="text-muted">Loading Doctors from Database...</small>
               </div>
+            ) : filteredDoctors.length === 0 ? (
+              <div className="p-3 text-center text-muted border rounded-3">
+                No doctors found for <strong>{selectedDept}</strong> department in the database.
+              </div>
             ) : (
               <div className="row g-3">
-                {doctors.map((doc) => {
+                {filteredDoctors.map((doc) => {
                   const docId = doc.doctorId || doc.id;
-                  const docName = doc.user?.fullName || doc.name || `Doctor ${docId}`;
+                  const docName = getDoctorName(doc);
                   const isSelected = selectedDoctor && (selectedDoctor.doctorId || selectedDoctor.id) === docId;
 
                   return (
@@ -161,12 +195,12 @@ function BookAppointment() {
                         onClick={() => setSelectedDoctor(doc)}
                         style={{ cursor: 'pointer' }}
                       >
-                        <img 
-                          src={doc.img || "https://i.pravatar.cc/150?img=11"} 
-                          alt={docName} 
-                          className="rounded-circle me-3" 
-                          width="50" 
-                          height="50" 
+                        <img
+                          src={doc.img || "https://i.pravatar.cc/150?img=11"}
+                          alt={docName}
+                          className="rounded-circle me-3"
+                          width="50"
+                          height="50"
                         />
                         <div>
                           <h6 className="fw-bold mb-0 text-dark">{docName}</h6>
@@ -229,9 +263,7 @@ function BookAppointment() {
               <span className="me-3">🩺</span>
               <div>
                 <small className="text-muted d-block text-uppercase fw-bold">Doctor</small>
-                <span className="fw-bold text-dark">
-                  {selectedDoctor ? (selectedDoctor.user?.fullName || selectedDoctor.name || "Dr. Selected") : 'None'}
-                </span>
+                <span className="fw-bold text-dark">{getDoctorName(selectedDoctor)}</span>
               </div>
             </div>
 
