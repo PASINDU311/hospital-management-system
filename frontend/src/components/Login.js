@@ -41,6 +41,8 @@ function Login() {
         navigate('/doctor-dashboard');
       } else if (role === 'ADMIN') {
         navigate('/admin-dashboard');
+      }else if (role === 'PHARMACIST' || role === 'ROLE_PHARMACIST') {
+        navigate('/pharmacy');
       } else {
         navigate('/appointments');
       }

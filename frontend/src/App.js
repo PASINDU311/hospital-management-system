@@ -6,6 +6,8 @@ import Login from './components/Login';
 import BookAppointment from './components/BookAppointment';
 import MyAppointments from './components/MyAppointments';
 import MainLayout from './components/MainLayout';
+import Pharmacy from './components/Pharmacy';
+import AdminDashboard from './components/AdminDashboard'; // ✅ Real Component Import
 
 // MedicalRecords Component එක Import කරගැනීම
 import MedicalRecords from './components/MedicalRecords';
@@ -17,11 +19,6 @@ import DoctorAppointments from './components/DoctorAppointments';
 import ClinicalConsultation from './components/ClinicalConsultation';
 
 import './App.css';
-
-// Admin Dashboard Placeholder
-function AdminDashboard() {
-  return <div className="text-center mt-5"><h1>Admin Dashboard (Coming Soon)</h1></div>
-}
 
 function Home() {
   return (
@@ -43,7 +40,9 @@ function App() {
           <Route path="/" element={<><Navbar /><Home /></>} />
           <Route path="/register" element={<><Navbar /><Register /></>} />
           <Route path="/login" element={<><Navbar /><Login /></>} />
-          <Route path="/admin-dashboard" element={<><Navbar /><AdminDashboard /></>} />
+          
+          {/* Admin Dashboard Route */}
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
 
           {/* Patient Protected Portal Routes (MainLayout) */}
           <Route element={<MainLayout />}>
@@ -51,7 +50,7 @@ function App() {
             <Route path="/appointments" element={<MyAppointments />} />
             <Route path="/book-appointment" element={<BookAppointment />} />
             
-            {/* Medical Records Route එක මෙතනට ඇතුළත් කළා */}
+            {/* Medical Records Route */}
             <Route path="/medical-records" element={<MedicalRecords />} />
           </Route>
 
@@ -65,7 +64,10 @@ function App() {
           {/* Direct Redirect for Doctor Login */}
           <Route path="/doctor-dashboard" element={<Navigate to="/doctor/dashboard" replace />} />
 
-          {/* Fallback Catch-All Route */}
+          {/* Pharmacy Route */}
+          <Route path="/pharmacy" element={<Pharmacy />} />
+
+          {/* Fallback Catch-All Route (Must be at the very bottom) */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </div>
